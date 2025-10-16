@@ -17,7 +17,7 @@ Sign up at [eyepop.ai](https://eyepop.ai) to get your free API token.
 ### 2. Install Dependencies
 
 ```bash
-pip install streamlit pillow python-dotenv eyepop-sdk-python requests
+pip install -r requirements.txt
 ```
 
 ### 3. Run the App
