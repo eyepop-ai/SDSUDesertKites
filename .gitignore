@@ -1,0 +1,50 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+env/
+venv/
+ENV/
+
+# Streamlit
+.streamlit/
+
+# Environment variables
+.env
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Project specific
+images/
+annotated_images/
+results/
+test_images/
+test_annotated_images/
+temp_cli_images/
+temp_streamlit/
+*.csv
+
+# Other scripts (only push app.py)
+main.py
+kite_detector.py
+test_*.py
+full_pipeline.py
+detect_from_coordinates.py
+detect_kite.sh
+run_app.sh
+*SUMMARY.md
+*COMPARISON.md
+QUICKSTART.md
+WEB_APP_QUICKSTART.md
+GITHUB_README.md
+
