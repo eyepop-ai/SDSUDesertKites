@@ -3,11 +3,11 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
+      args:
+        - GOOGLE_MAPS_API_KEY=${GOOGLE_MAPS_API_KEY}
     container_name: eyepop-sdsudesertkites
     ports:
       - "8501:8501"
-    environment:
-      - GOOGLE_MAPS_API_KEY=${GOOGLE_MAPS_API_KEY}
     volumes:
       # Mount temp directories for persistence
       - ./temp_streamlit:/home/appuser/temp_streamlit

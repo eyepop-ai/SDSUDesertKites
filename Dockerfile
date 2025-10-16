@@ -1,5 +1,9 @@
 FROM python:3.11-slim
 
+# Accept Google Maps API key as build argument
+ARG GOOGLE_MAPS_API_KEY
+ENV GOOGLE_MAPS_API_KEY=${GOOGLE_MAPS_API_KEY}
+
 # Create appuser group and user
 RUN groupadd --gid 1000 appuser \
     && useradd --uid 1000 --gid 1000 -ms /bin/bash appuser
@@ -21,7 +25,6 @@ WORKDIR /home/appuser
 # Copy application files
 COPY --chown=appuser:appuser app.py .
 COPY --chown=appuser:appuser requirements.txt .
-COPY --chown=appuser:appuser .env* ./
 COPY --chown=appuser:appuser .streamlit .streamlit
 
 # Create and activate virtual environment, then install dependencies
