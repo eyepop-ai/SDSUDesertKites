@@ -1,0 +1,89 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+env/
+venv/
+ENV/
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# Virtual environments
+venv/
+ENV/
+env/
+
+# IDEs
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Git
+.git/
+.gitignore
+.gitattributes
+
+# Documentation
+*.md
+!README.md
+DESIGN*.md
+AUTHENTICATION*.md
+MAIN_UI*.md
+SCRIPTS*.md
+STREAMLIT*.md
+PROJECT_SUMMARY.md
+QUICKSTART.md
+WEB_APP_QUICKSTART.md
+
+# Test files
+test_*.py
+*_test.py
+
+# Temporary files and output
+temp_cli_images/
+temp_streamlit/*
+results/*
+annotated_images/
+test_annotated_images/
+test_images/
+
+# CSV files
+*.csv
+
+# Images (keep only if needed)
+images/
+
+# Scripts not needed in container
+detect_kite.sh
+detect_from_coordinates.py
+full_pipeline.py
+kite_detector.py
+main.py
+# Keep run.sh for Docker entrypoint
+
+# Docker
+Dockerfile
+.dockerignore
+docker-compose.yml
+

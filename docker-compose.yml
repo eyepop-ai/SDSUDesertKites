@@ -1,0 +1,22 @@
+services:
+  streamlit-app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: desert-kite-detection
+    ports:
+      - "8501:8501"
+    environment:
+      - GOOGLE_MAPS_API_KEY=${GOOGLE_MAPS_API_KEY}
+    volumes:
+      # Mount temp directories for persistence
+      - ./temp_streamlit:/home/appuser/temp_streamlit
+      - ./results:/home/appuser/results
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8501/_stcore/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
