@@ -3,7 +3,7 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
-    container_name: desert-kite-detection
+    container_name: eyepop-sdsudesertkites
     ports:
       - "8501:8501"
     environment:

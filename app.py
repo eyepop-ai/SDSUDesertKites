@@ -22,7 +22,7 @@ load_dotenv()
 
 # Page configuration
 st.set_page_config(
-    page_title="Desert Kite Detection | EyePop.ai",
+    page_title="EyePop SDSU Desert Kites",
     page_icon="🪁",
     layout="wide",
     initial_sidebar_state="expanded"
