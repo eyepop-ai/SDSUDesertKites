@@ -1,0 +1,30 @@
+name: Release
+
+on:
+  release:
+    types: [published]
+
+concurrency:
+  group: "release"
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+  packages: write
+  attestations: write
+  id-token: write
+
+jobs:
+  release:
+    environment: staging
+    runs-on: eyepop-runner
+    steps:
+      -
+        name: Checkout
+        uses: actions/checkout@v4
+
+      -
+        name: Build and push
+        uses: eyepop-ai/eyepop-actions/build-ghcr@main
+        with:
+          repo: eyepop-ai/sdsu-desert-kites

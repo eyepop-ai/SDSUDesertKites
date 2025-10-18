@@ -85,5 +85,4 @@ main.py
 # Docker
 Dockerfile
 .dockerignore
-docker-compose.yml
-
+docker-compose.yaml

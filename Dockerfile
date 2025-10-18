@@ -1,46 +1,29 @@
-FROM python:3.11-slim
+FROM python:3.12-alpine
 
-# Accept Google Maps API key as build argument
-ARG GOOGLE_MAPS_API_KEY
-ENV GOOGLE_MAPS_API_KEY=${GOOGLE_MAPS_API_KEY}
+COPY --from=ghcr.io/astral-sh/uv:latest /uv /bin/uv
 
-# Create appuser group and user
-RUN groupadd --gid 1000 appuser \
-    && useradd --uid 1000 --gid 1000 -ms /bin/bash appuser
+RUN apk add --no-cache \
+    build-base \
+    bash
 
-# Upgrade pip and install virtualenv
-RUN pip3 install --no-cache-dir --upgrade \
-    pip \
-    virtualenv
+RUN addgroup -g 1000 appuser && \
+    adduser -D -s /bin/bash -u 1000 -G appuser appuser
 
-# Install system dependencies
-RUN apt-get update && apt-get install -y \
-    build-essential \
-    && rm -rf /var/lib/apt/lists/*
-
-# Switch to appuser
 USER appuser
 WORKDIR /home/appuser
 
-# Copy application files
-COPY --chown=appuser:appuser app.py .
 COPY --chown=appuser:appuser requirements.txt .
-COPY --chown=appuser:appuser .streamlit .streamlit
 
-# Create and activate virtual environment, then install dependencies
-ENV VIRTUAL_ENV=/home/appuser/venv
-RUN virtualenv ${VIRTUAL_ENV}
-RUN . ${VIRTUAL_ENV}/bin/activate && pip install --no-cache-dir -r requirements.txt
+RUN uv venv && uv pip install -r requirements.txt
 
-# Create directories for persistent data
+COPY --chown=appuser:appuser app.py .
+COPY --chown=appuser:appuser run.sh .
+
 RUN mkdir -p temp_streamlit results
 
-# Copy run script
-COPY --chown=appuser:appuser run.sh /home/appuser/
-RUN chmod +x /home/appuser/run.sh
+# Make run.sh executable
+RUN chmod +x run.sh
 
-# Expose Streamlit port
 EXPOSE 8501
 
-# Run the application
 ENTRYPOINT ["./run.sh"]
