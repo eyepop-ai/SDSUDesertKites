@@ -25,6 +25,6 @@ jobs:
 
       -
         name: Build and push
-        uses: eyepop-ai/eyepop-actions/build-ghcr@main
+        uses: eyepop-ai/eyepop-actions/build-ghcr@build-ghcr/v1
         with:
           repo: eyepop-ai/sdsu-desert-kites
