@@ -6,11 +6,14 @@ variable "TAG" {
   default = "latest"
 }
 
+group "default" {
+  targets = ["app"]
+}
+
 target "app" {
   context    = "."
   dockerfile = "Dockerfile"
   push       = true
-  output     = ["type=registry"]
   tags = [
     "${REGISTRY}/sdsu-desert-kites:${TAG}",
     "${REGISTRY}/sdsu-desert-kites:latest",
