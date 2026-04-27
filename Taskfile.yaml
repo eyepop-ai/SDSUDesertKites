@@ -3,8 +3,8 @@ version: '3'
 tasks:
   bake:
     desc: "Build and push the GHCR image tagged with the short git SHA + latest."
-    vars:
-      SHA:
+    env:
+      TAG:
         sh: git rev-parse --short HEAD
     cmds:
-      - TAG={{.SHA}} docker buildx bake --push {{.CLI_ARGS}}
+      - docker buildx bake --push {{.CLI_ARGS}}
