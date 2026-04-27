@@ -1,30 +1,82 @@
 name: Release
 
 on:
-  release:
-    types: [published]
+  push:
+    tags:
+      - 'v[0-9]*'
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "Version (e.g. v1.2.3)"
+        required: true
+        type: string
+
+run-name: "Release ${{ inputs.version || github.ref_name }}"
 
 concurrency:
-  group: "release"
+  group: release
   cancel-in-progress: true
 
+env:
+  IMAGE: ghcr.io/eyepop-ai/sdsu-desert-kites
+
 permissions:
-  contents: read
+  contents: write
   packages: write
   attestations: write
   id-token: write
 
 jobs:
   release:
-    environment: staging
-    runs-on: eyepop-runner
+    runs-on: ubuntu-latest
     steps:
-      -
-        name: Checkout
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
 
-      -
-        name: Build and push
-        uses: eyepop-ai/eyepop-actions/build-ghcr@main
+      - name: Extract tag
+        id: tag
+        uses: eyepop-ai/eyepop-actions/extract-tag@extract-tag/v1
+        with:
+          tag: ${{ inputs.version || '' }}
+
+      - name: Login to GHCR
+        uses: docker/login-action@v4
+        with:
+          registry: ghcr.io
+          username: ${{ github.repository_owner }}
+          password: ${{ secrets.GH_TOKEN }}
+
+      - name: Bake and push
+        uses: eyepop-ai/eyepop-actions/bake-ghcr@bake-ghcr/v1
+        env:
+          TAG: ${{ steps.tag.outputs.version }}
         with:
           repo: eyepop-ai/sdsu-desert-kites
+          targets: app
+
+      - name: Create or update GitHub Release
+        uses: eyepop-ai/eyepop-actions/github-release@github-release/v1
+        with:
+          tag: ${{ steps.tag.outputs.version }}
+          title: "sdsu-desert-kites ${{ steps.tag.outputs.version }}"
+          gh-token: ${{ secrets.GH_TOKEN }}
+          body: |
+            ## Image
+
+            `${{ env.IMAGE }}:${{ steps.tag.outputs.version }}`
+
+            Also tagged `latest`.
+
+      - name: Summary
+        env:
+          VERSION: ${{ steps.tag.outputs.version }}
+          IMAGE: ${{ env.IMAGE }}
+        run: |
+          {
+            echo "### Released"
+            echo ""
+            echo "**Version:** \`${VERSION}\`"
+            echo "**Image:** \`${IMAGE}:${VERSION}\`"
+            echo "**Latest:** \`${IMAGE}:latest\`"
+          } >> "$GITHUB_STEP_SUMMARY"
