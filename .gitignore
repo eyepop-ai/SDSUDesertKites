@@ -48,4 +48,4 @@ run_app.sh
 QUICKSTART.md
 WEB_APP_QUICKSTART.md
 GITHUB_README.md
-
+.claude/settings.local.json
