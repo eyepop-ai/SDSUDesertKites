@@ -40,13 +40,6 @@ jobs:
         with:
           tag: ${{ inputs.version || '' }}
 
-      - name: Login to GHCR
-        uses: docker/login-action@v4
-        with:
-          registry: ghcr.io
-          username: ${{ github.repository_owner }}
-          password: ${{ secrets.GH_TOKEN }}
-
       - name: Bake and push
         uses: eyepop-ai/eyepop-actions/bake-ghcr@bake-ghcr/v1
         env:
@@ -54,6 +47,7 @@ jobs:
         with:
           repo: eyepop-ai/sdsu-desert-kites
           targets: app
+          token: ${{ secrets.GH_TOKEN }}
 
       - name: Create or update GitHub Release
         uses: eyepop-ai/eyepop-actions/github-release@github-release/v1
