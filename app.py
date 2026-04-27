@@ -16,6 +16,9 @@ from eyepop.worker.worker_types import Pop, InferenceComponent
 from PIL import Image, ImageDraw, ImageFont
 import json
 import time
+import io
+import csv
+from concurrent.futures import ThreadPoolExecutor, as_completed
 
 # Load environment variables
 load_dotenv()
@@ -288,7 +291,7 @@ def validate_eyepop_token(api_key):
     """
     try:
         # Try to create a worker endpoint with the provided key
-        with EyePopSdk.workerEndpoint(secret_key=api_key) as endpoint:
+        with EyePopSdk.sync_worker(api_key=api_key) as endpoint:
             # If we get here without exception, the token is valid
             return True, None
     except Exception as e:
@@ -378,19 +381,13 @@ def download_satellite_image(lat, lon, api_key, zoom=17, size="640x640"):
     return image_path
 
 #old 06866d5655967d118000c4c4fca5bd36
-def detect_kites(image_path, eyepop_api_key, model_uuid='068e442ce4a4715780004ef18b98aa92'):
-    """Run kite detection using EyePop AI"""
-    with EyePopSdk.workerEndpoint(secret_key=eyepop_api_key) as endpoint:
-        endpoint.set_pop(Pop(
-            components=[
-                InferenceComponent(
-                    modelUuid=model_uuid
-                )
-            ]
-        ))
-        
-        result = endpoint.upload(image_path).predict()
-        return result
+#old 068e442ce4a4715780004ef18b98aa92
+KITE_MODEL_UUID = '069ea7d6ebb979a180004cfe3eb17162'
+
+
+def detect_kites(image_path, endpoint):
+    """Run kite detection on an image using a shared EyePop endpoint."""
+    return endpoint.upload(image_path).predict()
 
 
 def annotate_image(image_path, detections):
@@ -759,6 +756,71 @@ with col1:
             st.session_state.coordinate_queue.append(("31.483472", "38.368028"))
             st.rerun()
 
+    # CSV bulk upload
+    st.markdown("""
+    <div style='margin-top: 1.5rem; padding-top: 1.5rem; border-top: 1px solid #e2e8f0;'>
+        <p style='color: #64748b; font-size: 0.85rem; margin: 0 0 0.5rem 0; font-weight: 500;'>
+            Bulk Upload (CSV)
+        </p>
+        <p style='color: #94a3b8; font-size: 0.75rem; margin: 0 0 0.75rem 0;'>
+            Upload a CSV with <code>latitude</code> and <code>longitude</code> columns (or <code>lat</code>/<code>lon</code>). Decimal degrees only.
+        </p>
+    </div>
+    """, unsafe_allow_html=True)
+
+    csv_file = st.file_uploader(
+        "Upload coordinates CSV",
+        type=["csv"],
+        key="csv_upload",
+        label_visibility="collapsed",
+    )
+
+    if csv_file is not None:
+        try:
+            text = csv_file.getvalue().decode("utf-8-sig")
+            reader = csv.DictReader(io.StringIO(text))
+            if not reader.fieldnames:
+                raise ValueError("CSV appears to be empty.")
+
+            field_map = {f.strip().lower(): f for f in reader.fieldnames}
+            lat_key = next((field_map[k] for k in ("latitude", "lat") if k in field_map), None)
+            lon_key = next((field_map[k] for k in ("longitude", "lon", "lng", "long") if k in field_map), None)
+
+            if not lat_key or not lon_key:
+                raise ValueError(
+                    f"Could not find latitude/longitude columns. Found: {list(reader.fieldnames)}"
+                )
+
+            new_coords = []
+            skipped = 0
+            for row in reader:
+                lat_val = (row.get(lat_key) or "").strip()
+                lon_val = (row.get(lon_key) or "").strip()
+                if lat_val and lon_val:
+                    new_coords.append((lat_val, lon_val))
+                else:
+                    skipped += 1
+
+            if not new_coords:
+                st.error("No valid coordinate rows found in CSV.")
+            else:
+                btn_col1, btn_col2 = st.columns(2)
+                with btn_col1:
+                    if st.button(f"Add {len(new_coords)} to Queue", use_container_width=True, type="primary", key="csv_append"):
+                        st.session_state.coordinate_queue.extend(new_coords)
+                        st.success(f"Added {len(new_coords)} coordinate(s).")
+                        st.rerun()
+                with btn_col2:
+                    if st.button(f"Replace Queue ({len(new_coords)})", use_container_width=True, key="csv_replace"):
+                        st.session_state.coordinate_queue = list(new_coords)
+                        st.success(f"Replaced queue with {len(new_coords)} coordinate(s).")
+                        st.rerun()
+
+                if skipped:
+                    st.caption(f"Skipped {skipped} row(s) with missing values.")
+        except Exception as e:
+            st.error(f"Could not parse CSV: {e}")
+
 with col2:
     # Clean queue header
     st.markdown("""
@@ -829,44 +891,45 @@ if detect_button:
     # Process each coordinate
     progress_bar = st.progress(0)
     status_text = st.empty()
-    
-    total = len(st.session_state.coordinate_queue)
-    
-    for idx, (lat_str, lon_str) in enumerate(st.session_state.coordinate_queue):
-        try:
-            status_text.write(f"🔄 Processing location {idx + 1} of {total}...")
-            
-            # Convert coordinates
+
+    coords = st.session_state.coordinate_queue
+    total = len(coords)
+    completed = 0
+
+    with EyePopSdk.sync_worker(api_key=eyepop_api_key) as endpoint:
+        endpoint.set_pop(Pop(components=[InferenceComponent(modelUuid=KITE_MODEL_UUID)]))
+
+        def process_one(coord):
+            lat_str, lon_str = coord
             lat, lon = convert_coordinates(lat_str, lon_str)
-            
-            # Download image
             image_path = download_satellite_image(lat, lon, google_api_key, zoom=zoom_level)
-            
-            # Run detection
-            detections = detect_kites(image_path, eyepop_api_key)
-            
-            # Annotate image
+            detections = detect_kites(image_path, endpoint)
             annotated_img, desert_kites = annotate_image(image_path, detections)
-            
-            # Store result with original image path for re-drawing
-            st.session_state.all_detections.append({
+            return {
                 'image': annotated_img,
-                'image_path': image_path,  # Store path for dynamic re-drawing
+                'image_path': image_path,
                 'kites': desert_kites,
                 'lat': lat,
                 'lon': lon,
                 'zoom': zoom_level,
-                'original_input': (lat_str, lon_str)
-            })
-            
-            # Update progress
-            progress_bar.progress((idx + 1) / total)
-            
-        except Exception as e:
-            st.error(f"❌ Error processing {lat_str}, {lon_str}: {str(e)}")
-            # Continue with next coordinate
-            continue
-    
+                'original_input': (lat_str, lon_str),
+            }
+
+        max_workers = min(8, total) or 1
+        status_text.write(f"🔄 Processing {total} locations in parallel...")
+
+        with ThreadPoolExecutor(max_workers=max_workers) as executor:
+            future_to_coord = {executor.submit(process_one, c): c for c in coords}
+            for future in as_completed(future_to_coord):
+                coord = future_to_coord[future]
+                try:
+                    st.session_state.all_detections.append(future.result())
+                except Exception as e:
+                    st.error(f"❌ Error processing {coord[0]}, {coord[1]}: {str(e)}")
+                completed += 1
+                progress_bar.progress(completed / total)
+                status_text.write(f"🔄 Processed {completed} of {total}...")
+
     status_text.write(f"✅ Completed processing {len(st.session_state.all_detections)} of {total} locations!")
     time.sleep(1)
     st.rerun()
