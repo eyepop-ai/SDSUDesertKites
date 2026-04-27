@@ -2,6 +2,9 @@ version: '3'
 
 tasks:
   bake:
-    desc: "Build and push the GHCR image. Pass TAG=vX.Y.Z to override (default: latest)."
+    desc: "Build and push the GHCR image tagged with the short git SHA + latest."
+    vars:
+      SHA:
+        sh: git rev-parse --short HEAD
     cmds:
-      - docker buildx bake
+      - TAG={{.SHA}} docker buildx bake --push {{.CLI_ARGS}}
