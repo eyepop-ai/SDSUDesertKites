@@ -1,0 +1,7 @@
+version: '3'
+
+tasks:
+  bake:
+    desc: "Build and push the GHCR image. Pass TAG=vX.Y.Z to override (default: latest)."
+    cmds:
+      - docker buildx bake
