@@ -36,12 +36,12 @@ jobs:
 
       - name: Extract tag
         id: tag
-        uses: eyepop-ai/eyepop-actions/extract-tag@extract-tag/v1
+        uses: eyepop-ai/eyepop-actions/extract-tag@v1
         with:
           tag: ${{ inputs.version || '' }}
 
       - name: Bake and push
-        uses: eyepop-ai/eyepop-actions/bake-ghcr@bake-ghcr/v1
+        uses: eyepop-ai/eyepop-actions/bake-ghcr@v1
         env:
           TAG: ${{ steps.tag.outputs.version }}
         with:
@@ -50,7 +50,7 @@ jobs:
           token: ${{ secrets.GH_TOKEN }}
 
       - name: Create or update GitHub Release
-        uses: eyepop-ai/eyepop-actions/github-release@github-release/v1
+        uses: eyepop-ai/eyepop-actions/github-release@v1
         with:
           tag: ${{ steps.tag.outputs.version }}
           title: "sdsu-desert-kites ${{ steps.tag.outputs.version }}"
